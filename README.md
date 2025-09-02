@@ -70,4 +70,3 @@ open index.html   # or double-click the file
 ## Acknowledgments
 
 - Inspired by [Beast Academy](https://beastacademy.com/all-ten).
-- Solver logic based on the original Python code for enumerating expressions.
