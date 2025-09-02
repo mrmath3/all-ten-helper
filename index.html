@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>All Ten Helper</title>
+  <meta name="description" content="Local, in-browser helper that lists all expressions hitting 1–10 for a given All Ten daily digit set." />
+  <style>
+    /* ---------- Visual Design (clean, accessible, no frameworks) ---------- */
+    :root {
+      --bg: #0f172a;         /* deep slate */
+      --panel: #111827;      /* dark panel */
+      --muted: #94a3b8;      /* slate-300 */
+      --text: #e5e7eb;       /* gray-200 */
+      --accent: #60a5fa;     /* blue-400 */
+      --border: #1f2937;     /* slate-800 */
+      --ink: #cbd5e1;        /* slate-300 */
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: linear-gradient(180deg, #0b1022, #0f172a);
+      color: var(--text);
+    }
+    header.site {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(17,24,39,0.85);
+      backdrop-filter: blur(6px);
+      position: sticky; top: 0; z-index: 5;
+      display: flex; align-items: center; gap: 16px;
+    }
+    header.site h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    header .spacer { flex: 1; }
+    a.btn, button.btn {
+      appearance: none;
+      text-decoration: none;
+      color: var(--text);
+      border: 1px solid #334155;
+      padding: 9px 12px;
+      border-radius: 10px;
+      background: #0b1220;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    a.btn:hover, button.btn:hover { border-color: var(--accent); }
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .pane {
+      background: rgba(17,24,39,0.7);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .pane header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      background: rgba(2,6,23,0.6);
+      border-bottom: 1px solid #0b1220;
+    }
+    .pane header h2 { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink); }
+    .pane .body { padding: 14px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .fieldrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+    input[type="text"] {
+      background: #0b1220; color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 9px 12px; min-width: 240px; font-size: 14px;
+      outline: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .muted { color: var(--muted); font-size: 13px; }
+    .grid {
+      display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: #0b1220; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+    }
+    .card h3 { margin: 0 0 8px 0; font-size: 13px; color: var(--ink); display: flex; align-items: center; justify-content: space-between; }
+    .count { font-size: 12px; color: #9ca3af; background: #0a1428; border: 1px solid var(--border); padding: 2px 6px; border-radius: 8px; }
+    details { border-top: 1px dashed var(--border); padding-top: 6px; margin-top: 6px; }
+    summary { cursor: pointer; color: var(--ink); font-size: 13px; }
+    ol { margin: 8px 0 0 18px; }
+    footer.site {
+      text-align: center; color: var(--muted); font-size: 12px;
+      padding: 20px 0 40px;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  <!-- Site header with external link; embedding is intentionally removed -->
+  <header class="site">
+    <h1>All Ten Helper</h1>
+    <div class="spacer"></div>
+    <a class="btn" href="https://beastacademy.com/all-ten" target="_blank" rel="noopener">Open Beast Academy</a>
+  </header>
+
+  <main>
+    <!-- Solver pane -->
+    <section class="pane">
+      <header>
+        <h2>Solver</h2>
+        <div class="row">
+          <button class="btn" id="example">Try example (1,2,2,8)</button>
+          <button class="btn" id="clear">Clear</button>
+        </div>
+      </header>
+      <div class="body">
+        <div class="fieldrow">
+          <input id="nums" type="text" placeholder="Enter four digits like 1,2,2,8" />
+          <button id="solve" class="btn">Solve</button>
+        </div>
+
+        <p class="muted" id="tip">
+          Tip: you can load digits from the URL using
+          <code>#1,2,2,8</code> <em>or</em> <code>?nums=1,2,2,8</code>.
+          This works on GitHub Pages and local files. Changing the hash after load also re-runs the solver.
+        </p>
+
+        <div id="results" style="margin-top:12px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    Made for educational use.
+  </footer>
+
+<script>
+/* ==========================================================================
+   All Ten Helper (Client‑Side)
+   - No external dependencies
+   ========================================================================== */
+
+/* -------------------------- Small utilities -------------------------- */
+
+/** Return all unique permutations of an array (deduping equal items). */
+function permutations(arr) {
+  const res = [];
+  const used = Array(arr.length).fill(false);
+  const curr = [];
+  function backtrack() {
+    if (curr.length === arr.length) { res.push(curr.slice()); return; }
+    const seen = new Set();
+    for (let i = 0; i < arr.length; i++) {
+      if (used[i]) continue;
+      // Avoid generating duplicate permutations when values repeat
+      if (seen.has(arr[i])) continue;
+      seen.add(arr[i]);
+      used[i] = true; curr.push(arr[i]);
+      backtrack();
+      curr.pop(); used[i] = false;
+    }
+  }
+  backtrack();
+  return res;
+}
+
+/** Cartesian product with repetition: k-length tuples from items[]. */
+function productRepeat(items, k) {
+  if (k === 0) return [[]];
+  const prev = productRepeat(items, k - 1);
+  const out = [];
+  for (const p of prev) for (const it of items) out.push(p.concat([it]));
+  return out;
+}
+
+/** Basic operator application with safe division. */
+function applyOp(a, op, b) {
+  if (op === '+') return a + b;
+  if (op === '-') return a - b;
+  if (op === '*') return a * b;
+  if (op === '/') return b === 0 ? NaN : a / b;
+  return NaN;
+}
+
+/** Accept only exact integers 1..10 (tolerant to tiny float error). */
+function isIntInRange(x) {
+  return Number.isFinite(x) && Math.abs(x - Math.round(x)) < 1e-9 && x >= 1 && x <= 10;
+}
+
+/** String formatter matching the five expression patterns. */
+function formatExpr(a, op1, b, op2, c, op3, d, pattern) {
+  if (pattern === 1) return `${a}${op1}${b}${op2}${c}${op3}${d}`;
+  if (pattern === 2) return `(${a}${op1}${b})${op2}(${c}${op3}${d})`;
+  if (pattern === 3) return `((${a}${op1}${b})${op2}${c})${op3}${d}`;
+  if (pattern === 4) return `(${a}${op1}${b})${op2}${c}${op3}${d}`;
+  if (pattern === 5) return `${a}${op1}(${b}${op2}(${c}${op3}${d}))`;
+  return '';
+}
+
+/** Numeric evaluator for the five patterns (no eval()). */
+function evalPattern(a, op1, b, op2, c, op3, d, pattern) {
+  try {
+    if (pattern === 1) {
+      return applyOp(applyOp(applyOp(a, op1, b), op2, c), op3, d);
+    } else if (pattern === 2) {
+      const left = applyOp(a, op1, b);
+      const right = applyOp(c, op3, d);
+      return applyOp(left, op2, right);
+    } else if (pattern === 3) {
+      const left = applyOp(applyOp(a, op1, b), op2, c);
+      return applyOp(left, op3, d);
+    } else if (pattern === 4) {
+      const left = applyOp(a, op1, b);
+      return applyOp(applyOp(left, op2, c), op3, d);
+    } else if (pattern === 5) {
+      const inner = applyOp(c, op3, d);
+      const mid = applyOp(b, op2, inner);
+      return applyOp(a, op1, mid);
+    }
+  } catch { return NaN; }
+  return NaN;
+}
+
+/** Deduplicate a list of strings while preserving order. */
+function dedup(arr) {
+  const seen = new Set(); const out = [];
+  for (const s of arr) if (!seen.has(s)) { seen.add(s); out.push(s); }
+  return out;
+}
+
+/** For concatenation helpers: unique-of-lists ignoring order. */
+function uniqConcatLists(listOfLists) {
+  const seen = new Set(); const out = [];
+  for (const lst of listOfLists) {
+    const key = JSON.stringify([...lst].sort((x,y)=>x-y));
+    if (!seen.has(key)) { seen.add(key); out.push(lst); }
+  }
+  return out;
+}
+
+/** Build concatenation variants like the original Python `concat`. */
+function concatVariants(nums) {
+  const conc1 = []; // [AB, C, D]
+  const conc2 = []; // [AB, CD]
+  for (const p of permutations(nums)) {
+    const AB = 10 * p[0] + p[1];
+    const CD = 10 * p[2] + p[3];
+    conc1.push([AB, p[2], p[3]]);
+    conc2.push([AB, CD]);
+  }
+  return [uniqConcatLists(conc1), uniqConcatLists(conc2)];
+}
+
+/* -------------------------- Core solver (unchanged logic) -------------------------- */
+function solveAllTen(nums) {
+  const operators = ['+','-','*','/'];
+  const results = {}; for (let n = 1; n <= 10; n++) results[n] = [];
+
+  // 4-number mode
+  for (const p of permutations(nums)) {
+    const [a,b,c,d] = p;
+    for (const [op1, op2, op3] of productRepeat(operators, 3)) {
+      for (let pattern = 1; pattern <= 5; pattern++) {
+        const val = evalPattern(a, op1, b, op2, c, op3, d, pattern);
+        if (isIntInRange(val)) {
+          const expr = formatExpr(a, op1, b, op2, c, op3, d, pattern);
+          results[val].push(expr);
+        }
+      }
+    }
+  }
+
+  // Concatenation: [AB, C, D] (three terms, two ops, three parenthesizations)
+  const [con1, con2] = concatVariants(nums);
+  for (const triple of con1) {
+    for (const p of permutations(triple)) {
+      const [a,b,c] = p;
+      for (const [op1, op2] of productRepeat(['+','-','*','/'], 2)) {
+        const val1 = applyOp(applyOp(a, op1, b), op2, c);
+        const val2 = val1; // same as explicit (a op1 b) op2 c
+        const val3 = applyOp(a, op1, applyOp(b, op2, c));
+
+        if (isIntInRange(val1)) results[Math.round(val1)].push(`${a}${op1}${b}${op2}${c}`);
+        if (isIntInRange(val2)) results[Math.round(val2)].push(`(${a}${op1}${b})${op2}${c}`);
+        if (isIntInRange(val3)) results[Math.round(val3)].push(`${a}${op1}(${b}${op2}${c})`);
+      }
+    }
+  }
+
+  // Concatenation: [AB, CD] (two terms, one op)
+  for (const pair of con2) {
+    for (const p of permutations(pair)) {
+      const [a,b] = p;
+      for (const [op] of productRepeat(['+','-','*','/'], 1)) {
+        const val = applyOp(a, op, b);
+        if (isIntInRange(val)) results[Math.round(val)].push(`${a}${op}${b}`);
+      }
+    }
+  }
+
+  // Normalize: dedupe and sort expressions for each target
+  for (let n = 1; n <= 10; n++) {
+    results[n] = dedup(results[n]).sort((x,y)=>x.length - y.length || x.localeCompare(y));
+  }
+  return results;
+}
+
+/* -------------------------- UI helpers -------------------------- */
+
+/** Parse "1,2,2,8" (commas, spaces or any non-digits accepted as separators). */
+function parseNums(str) {
+  if (!str) return null;
+  const parts = str.split(/[^0-9]+/).filter(Boolean).map(s=>parseInt(s,10));
+  if (parts.length !== 4 || parts.some(n => !Number.isFinite(n) || n < 0 || n > 9)) return null;
+  return parts;
+}
+
+/** Render the full 1..10 results grid. */
+function render(results) {
+  const container = document.getElementById('results');
+  container.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+
+  for (let n = 1; n <= 10; n++) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const list = results[n];
+    const h = document.createElement('h3');
+    const title = document.createElement('span'); title.textContent = `Target ${n}`;
+    const count = document.createElement('span'); count.className = 'count';
+    count.textContent = list.length + ' solution' + (list.length === 1 ? '' : 's');
+    h.appendChild(title); h.appendChild(count); card.appendChild(h);
+
+    if (list.length === 0) {
+      const p = document.createElement('p'); p.className = 'muted'; p.textContent = 'No solutions found.'; card.appendChild(p);
+    } else {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = 'Show expressions'; details.appendChild(summary);
+      const ol = document.createElement('ol');
+      for (const expr of list) { const li = document.createElement('li'); li.textContent = expr; ol.appendChild(li); }
+      details.appendChild(ol); card.appendChild(details);
+    }
+    grid.appendChild(card);
+  }
+  container.appendChild(grid);
+}
+
+/** Compute and render from string input like "1,2,2,8". */
+function runSolve(fromInput) {
+  const raw = fromInput ?? document.getElementById('nums').value.trim();
+  const nums = parseNums(raw);
+  if (!nums) {
+    alert('Enter exactly four digits like "1,2,2,8".');
+    return;
+  }
+  const res = solveAllTen(nums);
+  render(res);
+}
+
+/* -------------------------- URL wiring -------------------------- */
+
+/** Extract digits from either hash "#1,2,2,8" or query "?nums=1,2,2,8". */
+function readDigitsFromURL() {
+  // Prefer query param if present
+  const params = new URLSearchParams(location.search);
+  if (params.has('nums')) return params.get('nums');
+  // Fallback to hash (strip leading '#')
+  const hash = decodeURIComponent(location.hash.replace(/^#/, ''));
+  return hash || null;
+}
+
+/** Initialize: run once on load and whenever the hash changes. */
+function initURLBindings() {
+  // On load: run if digits exist in URL
+  const initial = readDigitsFromURL();
+  const parsed = parseNums(initial);
+  if (parsed) {
+    document.getElementById('nums').value = initial;
+    runSolve(initial);
+  }
+
+  // Respond to subsequent hash changes, e.g., user edits the URL bar
+  window.addEventListener('hashchange', () => {
+    const fromHash = decodeURIComponent(location.hash.replace(/^#/, ''));
+    if (!fromHash) return;
+    const p = parseNums(fromHash);
+    if (p) {
+      document.getElementById('nums').value = fromHash;
+      runSolve(fromHash);
+    }
+  });
+}
+
+/* -------------------------- Boot & buttons -------------------------- */
+
+document.getElementById('solve').addEventListener('click', ()=>runSolve());
+document.getElementById('example').addEventListener('click', ()=>{
+  document.getElementById('nums').value = '1,2,2,8';
+  runSolve('1,2,2,8');
+});
+document.getElementById('clear').addEventListener('click', ()=>{
+  document.getElementById('nums').value = '';
+  document.getElementById('results').innerHTML = '';
+});
+
+// Start
+initURLBindings();
+</script>
+</body>
+</html>
